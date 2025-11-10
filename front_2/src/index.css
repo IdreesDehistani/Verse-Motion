@@ -1,0 +1,329 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern Lyric Video App Design System - Vibrant & Dynamic */
+
+@layer base {
+  :root {
+    /* Custom color palette - Deep ocean theme */
+    --background: 194 75% 17%;
+    --foreground: 45 100% 95%;
+
+    /* Cards and surfaces */
+    --card: 183 75% 15%;
+    --card-foreground: 45 100% 95%;
+
+    --popover: 183 75% 15%;
+    --popover-foreground: 45 100% 95%;
+
+    /* Deep burgundy primary */
+    --primary: 315 90% 20%;
+    --primary-foreground: 45 100% 95%;
+    --primary-glow: 358 30% 55%;
+
+    /* Dark teal secondary */
+    --secondary: 183 75% 15%;
+    --secondary-foreground: 45 100% 95%;
+
+    /* Muted tones */
+    --muted: 194 75% 12%;
+    --muted-foreground: 45 30% 70%;
+
+    /* Rose accent */
+    --accent: 358 30% 55%;
+    --accent-foreground: 45 100% 95%;
+    --accent-glow: 358 30% 70%;
+
+    /* Status colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 45 100% 95%;
+
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+
+    /* UI elements */
+    --border: 194 50% 25%;
+    --input: 194 50% 25%;
+    --ring: 315 90% 20%;
+
+    /* Lyric-specific colors */
+    --lyric-highlight: 315 90% 20%;
+    --lyric-active: 358 30% 55%;
+    --lyric-upcoming: 194 50% 35%;
+    --lyric-past: 194 50% 25%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(315 90% 20%), hsl(358 30% 55%));
+    --gradient-background: linear-gradient(135deg, hsl(194 75% 17%), hsl(183 75% 15%), hsl(315 90% 10%));
+    --gradient-player: linear-gradient(180deg, hsl(183 75% 15%), hsl(194 75% 12%));
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(315 90% 20% / 0.3);
+    --shadow-player: 0 -10px 40px hsl(194 75% 5% / 0.5);
+    --shadow-card: 0 8px 32px hsl(194 75% 5% / 0.3);
+
+    /* Animation */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 1rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .light {
+    /* Light mode - Cream and warm tones */
+    --background: 45 60% 90%;
+    --foreground: 194 75% 17%;
+
+    --card: 45 60% 95%;
+    --card-foreground: 194 75% 17%;
+
+    --popover: 45 60% 95%;
+    --popover-foreground: 194 75% 17%;
+
+    --primary: 315 90% 20%;
+    --primary-foreground: 45 60% 90%;
+
+    --secondary: 45 40% 85%;
+    --secondary-foreground: 194 75% 17%;
+
+    --muted: 45 40% 85%;
+    --muted-foreground: 194 50% 35%;
+
+    --accent: 358 30% 55%;
+    --accent-foreground: 45 60% 90%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 45 60% 90%;
+
+    --border: 45 30% 80%;
+    --input: 45 30% 85%;
+    --ring: 315 90% 20%;
+
+    /* Light mode lyric colors */
+    --lyric-highlight: 315 90% 25%;
+    --lyric-active: 358 30% 50%;
+    --lyric-upcoming: 194 50% 40%;
+    --lyric-past: 194 30% 60%;
+
+    /* Light mode gradients */
+    --gradient-background: linear-gradient(135deg, hsl(45 60% 90%), hsl(45 40% 85%));
+    --gradient-player: linear-gradient(180deg, hsl(45 60% 95%), hsl(45 40% 85%));
+    --shadow-glow: 0 0 40px hsl(315 90% 20% / 0.2);
+    --shadow-player: 0 -10px 40px hsl(194 75% 17% / 0.1);
+    --shadow-card: 0 8px 32px hsl(194 75% 17% / 0.1);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-display;
+  }
+
+  html {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* Spotlight effect */
+.spotlight-bg {
+  background: radial-gradient(300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+    hsl(var(--primary) / 0.25) 0%, 
+    hsl(var(--accent) / 0.15) 30%,
+    transparent 60%);
+}
+
+@layer utilities {
+  .group:hover .spotlight-bg {
+    background: radial-gradient(300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+      hsl(var(--primary) / 0.35) 0%, 
+      hsl(var(--accent) / 0.25) 30%,
+      transparent 70%);
+  }
+
+  /* Haptic Animations */
+  .animate-bounce-gentle {
+    animation: bounce-gentle 0.6s ease-in-out;
+  }
+
+  .animate-pulse-gentle {
+    animation: pulse-gentle 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-beat {
+    animation: pulse-beat 0.8s ease-in-out infinite;
+  }
+
+  .animate-lyric-glow {
+    animation: lyric-glow 2s ease-in-out infinite;
+  }
+
+  .animate-slide-shine {
+    animation: slide-shine 2s linear infinite;
+  }
+
+  .animate-gradient-shift {
+    animation: gradient-shift 4s ease-in-out infinite;
+  }
+
+  .animate-micro-bounce {
+    animation: micro-bounce 0.3s ease-out;
+  }
+
+  .animate-haptic-tap {
+    animation: haptic-tap 0.2s ease-out;
+  }
+
+  .animate-gentle-sway {
+    animation: gentle-sway 3s ease-in-out infinite;
+  }
+
+  @keyframes bounce-gentle {
+    0%, 100% { 
+      transform: translateY(0) scale(1); 
+    }
+    50% { 
+      transform: translateY(-4px) scale(1.05); 
+      text-shadow: 0 4px 12px hsl(var(--primary) / 0.4);
+    }
+  }
+
+  @keyframes pulse-gentle {
+    0%, 100% { 
+      opacity: 0.8;
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 1;
+      transform: scale(1.02);
+    }
+  }
+
+  @keyframes pulse-beat {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5);
+    }
+    50% { 
+      transform: scale(1.2);
+      box-shadow: 0 0 12px hsl(var(--primary)), 0 0 24px hsl(var(--primary) / 0.7), 0 0 36px hsl(var(--accent) / 0.3);
+    }
+  }
+
+  @keyframes lyric-glow {
+    0%, 100% { 
+      text-shadow: 0 0 10px hsl(var(--primary) / 0.6);
+    }
+    50% { 
+      text-shadow: 0 0 20px hsl(var(--primary) / 0.8), 0 0 30px hsl(var(--accent) / 0.4);
+    }
+  }
+
+  @keyframes slide-shine {
+    0% { 
+      transform: translateX(-100%); 
+    }
+    100% { 
+      transform: translateX(200%); 
+    }
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% { 
+      background-position: 0% 50%; 
+    }
+    50% { 
+      background-position: 100% 50%; 
+    }
+  }
+
+  @keyframes micro-bounce {
+    0%, 100% { 
+      transform: translateY(0); 
+    }
+    50% { 
+      transform: translateY(-2px); 
+    }
+  }
+
+  @keyframes haptic-tap {
+    0% { 
+      transform: scale(1); 
+    }
+    50% { 
+      transform: scale(0.95); 
+    }
+    100% { 
+      transform: scale(1); 
+    }
+  }
+
+  @keyframes gentle-sway {
+    0%, 100% { 
+      transform: translateX(0) rotate(0deg); 
+    }
+    25% { 
+      transform: translateX(2px) rotate(0.5deg); 
+    }
+    75% { 
+      transform: translateX(-2px) rotate(-0.5deg); 
+    }
+  }
+
+  /* Interactive Elements */
+  .hover-haptic:hover {
+    animation: micro-bounce 0.3s ease-out;
+  }
+
+  .click-haptic:active {
+    animation: haptic-tap 0.2s ease-out;
+  }
+
+  .floating-element {
+    animation: gentle-sway 3s ease-in-out infinite;
+  }
+
+  /* Button Enhancement */
+  button:not(.no-haptic) {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  button:not(.no-haptic):hover {
+    transform: translateY(-1px);
+  }
+
+  button:not(.no-haptic):active {
+    transform: translateY(0) scale(0.98);
+  }
+}
