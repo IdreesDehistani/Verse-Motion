@@ -51,7 +51,10 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-120px)] text-center space-y-12 p-8">
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-[75vh] text-center space-y-8 p-6">
+  
+  
         {/* Hero Section */}
         <div className="space-y-8 max-w-4xl mx-auto">
           {/* Main Title */}
@@ -67,8 +70,8 @@ const Index = () => {
                 alpha={false}
                 stroke={false}
                 textColor="hsl(var(--foreground))"
-                minFontSize={60}
-                maxFontSize={90}
+                minFontSize={52}
+                maxFontSize={78}
                 className="inline-block"
                 neighborEffect={true}
                 neighborStrength={0.8}
@@ -96,7 +99,8 @@ const Index = () => {
           </div>
           
           {/* Description */}
-          <p className="font-sans text-xl md:text-2xl text-foreground/80 max-w-2xl mx-auto font-medium">
+          <p className="font-sans text-lg md:text-xl text-foreground/80 max-w-2xl mx-auto font-medium tracking-wide antialiased">
+
             {"Interactive lyrics that sync with your beats".split('').map((char, index) => (
               <TextPressure
                 key={index}
@@ -107,7 +111,7 @@ const Index = () => {
                 italic={false}
                 alpha={false}
                 stroke={false}
-                textColor="hsl(var(--foreground) / 0.8)"
+                textColor="hsl(var(--foreground))"
                 minFontSize={20}
                 maxFontSize={28}
                 className="inline-block"
@@ -132,7 +136,7 @@ const Index = () => {
         </div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto pt-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto pt-4">
           <SpotlightEffect className="text-center space-y-4 p-8 rounded-3xl bg-card/40 backdrop-blur-md border border-border/40 hover:scale-105 transition-all duration-500 hover:bg-card/50 group">
             <div className="w-20 h-20 mx-auto bg-gradient-primary rounded-3xl flex items-center justify-center shadow-glow group-hover:shadow-xl transition-all duration-300">
               <Music className="h-10 w-10 text-white" />
