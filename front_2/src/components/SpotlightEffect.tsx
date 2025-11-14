@@ -14,27 +14,27 @@ export function SpotlightEffect({ children, className = '' }: SpotlightEffectPro
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      
+      let x = ((e.clientX - rect.left) / rect.width) * 100;
+      let y = ((e.clientY - rect.top) / rect.height) * 100;
+
+      // clamp to avoid jumpiness
+      x = Math.min(100, Math.max(0, x));
+      y = Math.min(100, Math.max(0, y));
+
       container.style.setProperty('--mouse-x', `${x}%`);
       container.style.setProperty('--mouse-y', `${y}%`);
     };
 
-    const handleMouseEnter = () => {
-      container.addEventListener('mousemove', handleMouseMove);
-    };
+    // attach once
+    container.addEventListener('mousemove', handleMouseMove);
 
-    const handleMouseLeave = () => {
-      container.removeEventListener('mousemove', handleMouseMove);
-    };
-
-    container.addEventListener('mouseenter', handleMouseEnter);
-    container.addEventListener('mouseleave', handleMouseLeave);
+    // reset spotlight when mouse leaves
+    container.addEventListener('mouseleave', () => {
+      container.style.setProperty('--mouse-x', `-9999px`);
+      container.style.setProperty('--mouse-y', `-9999px`);
+    });
 
     return () => {
-      container.removeEventListener('mouseenter', handleMouseEnter);
-      container.removeEventListener('mouseleave', handleMouseLeave);
       container.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);

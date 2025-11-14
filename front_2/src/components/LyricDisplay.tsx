@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 interface LyricLine {
   text: string;
@@ -14,14 +14,14 @@ interface LyricLine {
 interface LyricSettings {
   fontSize: number;
   fontFamily: string;
-  textColor: string;
-  glowIntensity: number;
-  highlightColor: string;
-  lineSpacing?: number;
-  letterSpacing?: number;
-  textShadow?: number;
-  animationSpeed?: number;
-  blurEffect?: number;
+    textColor: string;
+    glowIntensity: number;
+    highlightColor: string;
+    lineSpacing?: number;
+    letterSpacing?: number;
+    textShadow?: number;
+    animationSpeed?: number;
+    blurEffect?: number;
 }
 
 interface LyricDisplayProps {
@@ -31,179 +31,140 @@ interface LyricDisplayProps {
   settings: LyricSettings;
 }
 
-export function LyricDisplay({ lyrics, currentTime, isPlaying, settings }: LyricDisplayProps) {
+export function LyricDisplay({ lyrics, currentTime, settings }: LyricDisplayProps) {
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
+  // QUICK SCAN FOR CURRENT LINE (optimized)
   useEffect(() => {
-    const currentLine = lyrics.find((line, index) => {
-      return currentTime >= line.startTime && currentTime <= line.endTime;
-    });
-
-    if (currentLine) {
-      const lineIndex = lyrics.indexOf(currentLine);
-      setCurrentLineIndex(lineIndex);
-
-      // Word-by-word highlighting
-      if (currentLine.words) {
-        const currentWord = currentLine.words.find(word => 
-          currentTime >= word.startTime && currentTime <= word.endTime
-        );
-        if (currentWord) {
-          setCurrentWordIndex(currentLine.words.indexOf(currentWord));
-        }
-      }
-    }
+    const index = lyrics.findIndex(
+      line => currentTime >= line.startTime && currentTime <= line.endTime
+    );
+    if (index !== -1) setCurrentLineIndex(index);
   }, [currentTime, lyrics]);
 
-  // Enhanced word emphasis detection
+  // FIND CURRENT WORD
+  useEffect(() => {
+    const line = lyrics[currentLineIndex];
+    if (!line?.words) return;
+
+    const wordIndex = line.words.findIndex(
+      w => currentTime >= w.startTime && currentTime <= w.endTime
+    );
+
+    if (wordIndex !== -1) setCurrentWordIndex(wordIndex);
+  }, [currentTime, currentLineIndex, lyrics]);
+
+  // EMPHASIS WORD DETECTION
   const isEmphasisWord = (text: string) => {
-    const emphasisPatterns = [
-      /^(boom|wow|yeah|hey|oh|ah|whoa|bang|pow|crash|slam|fire|lit|wild|crazy|sick|epic|blast|drop|beat|bass|drop|hit)$/i,
-      /^.*(!)$/, // Words ending with exclamation
-      /^(ooh|aah|mmm|hmm|ugh|shh|psst)$/i, // Vocal expressions
-      /^(go|up|down|jump|dance|move|shake|drop|rise|fall|fly|run|break|smash)$/i, // Action words
-      /^(love|hate|amazing|incredible|fantastic|awesome|terrible|beautiful|perfect|insane)$/i // Emotional words
+    const patterns = [
+      /^(boom|yeah|hey|oh|ah|whoa|fire|lit|wild|epic|drop|bass)$/i,
+      /!$/,
+      /^(ooh|aah|mmm|ugh|shh)$/i,
+      /^(go|jump|dance|move|shake|rise|fall|fly)$/i,
+      /^(love|hate|amazing|perfect|insane)$/i,
     ];
-    return emphasisPatterns.some(pattern => pattern.test(text.trim()));
+    return patterns.some(p => p.test(text.trim()));
   };
 
+  // STYLE FOR EACH WORD (lighter animations)
   const getWordStyle = (word: { text: string }, isCurrentWord: boolean, isPastWord: boolean) => {
-    const isEmphasis = isEmphasisWord(word.text);
-    const baseScale = isEmphasis ? 1.2 : 1;
-    const currentScale = isCurrentWord ? (isEmphasis ? 1.5 : 1.1) : baseScale;
-    
+    const emphasis = isEmphasisWord(word.text);
+
+    const glow = isCurrentWord
+      ? `${settings.glowIntensity * 0.4}px ${settings.highlightColor}`
+      : emphasis && isPastWord
+      ? `${settings.glowIntensity * 0.2}px ${settings.textColor}`
+      : undefined;
+
     return {
-      transform: `scale(${currentScale})`,
-      textShadow: isCurrentWord 
-        ? `0 0 ${settings.glowIntensity * 0.3}px ${settings.highlightColor}, 0 0 ${settings.glowIntensity * 0.6}px ${settings.highlightColor}${isEmphasis ? `, 0 0 ${settings.glowIntensity}px ${settings.highlightColor}` : ''}`
-        : isEmphasis && isPastWord 
-        ? `0 0 ${settings.glowIntensity * 0.2}px ${settings.textColor}`
-        : undefined,
+      transform: isCurrentWord ? (emphasis ? "scale(1.25)" : "scale(1.1)") : "scale(1)",
       color: isCurrentWord ? settings.highlightColor : settings.textColor,
-      fontWeight: isEmphasis ? '900' : undefined,
-      display: 'inline-block',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      marginRight: '0.25em'
+      fontWeight: emphasis ? 800 : undefined,
+      textShadow: glow ? `0 0 ${glow}` : undefined,
+      transition: "transform 0.25s ease-out, color 0.25s ease-out",
+      display: "inline-block",
+      marginRight: "0.3em",
     };
   };
 
-  const renderLine = (line: LyricLine, lineIndex: number) => {
-    const isCurrentLine = lineIndex === currentLineIndex;
-    const isPastLine = lineIndex < currentLineIndex;
-    const isFutureLine = lineIndex > currentLineIndex;
-
-    if (line.words) {
-      return (
-        <div
-          key={lineIndex}
-          className={`text-center mb-6 transition-all duration-500 ${
-            isCurrentLine 
-              ? 'opacity-100 scale-105' 
-              : isPastLine
-              ? 'opacity-60'
-              : 'opacity-40'
-          }`}
-          style={{
-            fontSize: `${(isCurrentLine ? 3.5 : 2) * (settings.fontSize / 100)}rem`,
-            fontFamily: settings.fontFamily,
-            fontWeight: isCurrentLine ? 'bold' : 'normal'
-          }}
-        >
-          {line.words.map((word, wordIndex) => {
-            const isCurrentWord = isCurrentLine && wordIndex === currentWordIndex;
-            const isPastWord = isCurrentLine && wordIndex < currentWordIndex;
-            const isEmphasis = isEmphasisWord(word.text);
-            
-            return (
-              <span
-                key={wordIndex}
-                className={`${isCurrentWord && isEmphasis ? 'animate-bounce-gentle' : ''} inline-block mr-2`}
-                style={getWordStyle(word, isCurrentWord, isPastWord)}
-              >
-                {word.text}
-              </span>
-            );
-          })}
-        </div>
-      );
-    }
-
-    const lineText = line.text;
-    const hasEmphasisWords = lineText.split(' ').some(word => isEmphasisWord(word));
-
-    return (
-      <div
-        key={lineIndex}
-        className={`text-center mb-6 transition-all duration-500 ${
-          isCurrentLine 
-            ? 'opacity-100 scale-105' 
-            : isPastLine
-            ? 'opacity-60'
-            : 'opacity-40'
-        } ${isCurrentLine && hasEmphasisWords ? 'animate-lyric-glow' : ''}`}
-        style={{
-          fontSize: `${(isCurrentLine ? 3.5 : 2) * (settings.fontSize / 100)}rem`,
-          fontFamily: settings.fontFamily,
-          fontWeight: isCurrentLine ? 'bold' : 'normal',
-          color: isCurrentLine ? settings.highlightColor : settings.textColor,
-          textShadow: isCurrentLine 
-            ? `0 0 ${settings.glowIntensity * 0.3}px ${settings.highlightColor}, 0 0 ${settings.glowIntensity * 0.6}px ${settings.highlightColor}${hasEmphasisWords ? `, 0 0 ${settings.glowIntensity}px ${settings.highlightColor}` : ''}`
-            : undefined
-        }}
-      >
-        {lineText.split(' ').map((word, wordIndex) => {
-          const isEmphasis = isEmphasisWord(word);
-          return (
-            <span
-              key={wordIndex}
-              className={`${isCurrentLine && isEmphasis ? 'animate-bounce-gentle' : ''} inline-block`}
-              style={{
-                marginRight: '0.5em',
-                fontFamily: settings.fontFamily,
-                transform: isCurrentLine && isEmphasis ? 'scale(1.2)' : 'scale(1)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                fontWeight: isEmphasis ? 900 : 'inherit'
-              }}
-            >
-              {word}
-            </span>
-          );
-        })}
-      </div>
-    );
-  };
+  // LIMIT DISPLAYED LINES FOR PERFORMANCE
+  const visibleLines = useMemo(() => {
+    const start = Math.max(0, currentLineIndex - 2);
+    const end = currentLineIndex + 3;
+    return lyrics.slice(start, end);
+  }, [lyrics, currentLineIndex]);
 
   return (
     <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
-      <div 
-        className="max-w-4xl mx-auto"
+      <div
+        className="max-w-4xl mx-auto text-center"
         style={{
           lineHeight: settings.lineSpacing || 1.5,
           letterSpacing: `${settings.letterSpacing || 0}px`,
-          textShadow: settings.textShadow ? `0 0 ${settings.textShadow}px ${settings.textColor}40` : undefined,
+          fontFamily: settings.fontFamily,
           filter: settings.blurEffect ? `blur(${settings.blurEffect}px)` : undefined,
-          animationDuration: `${(settings.animationSpeed || 1) * 1000}ms`
         }}
       >
-        <div className="space-y-2">
-          {lyrics.slice(Math.max(0, currentLineIndex - 2), currentLineIndex + 3).map((line, index) => {
-            const actualIndex = Math.max(0, currentLineIndex - 2) + index;
-            return renderLine(line, actualIndex);
+        <div className="space-y-3">
+          {visibleLines.map((line, i) => {
+            const index = Math.max(0, currentLineIndex - 2) + i;
+            const isCurrentLine = index === currentLineIndex;
+            const isPast = index < currentLineIndex;
+
+            return (
+              <div
+                key={index}
+                className={`
+                  mb-4 transition-all duration-400
+                  ${isCurrentLine ? "opacity-100 scale-105" : isPast ? "opacity-60" : "opacity-40"}
+                `}
+                style={{
+                  fontSize: `${(isCurrentLine ? 3 : 2) * (settings.fontSize / 100)}rem`,
+                }}
+              >
+                {line.words
+                  ? line.words.map((w, wi) => {
+                      const isCurrentWord = isCurrentLine && wi === currentWordIndex;
+                      const isPastWord = isCurrentLine && wi < currentWordIndex;
+
+                      return (
+                        <span
+                          key={wi}
+                          style={getWordStyle(w, isCurrentWord, isPastWord)}
+                        >
+                          {w.text}
+                        </span>
+                      );
+                    })
+                  : line.text.split(" ").map((word, wi) => {
+                      const emphasis = isEmphasisWord(word);
+                      return (
+                        <span
+                          key={wi}
+                          style={{
+                            marginRight: "0.35em",
+                            fontWeight: emphasis ? 800 : "inherit",
+                          }}
+                        >
+                          {word}
+                        </span>
+                      );
+                    })}
+              </div>
+            );
           })}
         </div>
-        
+
         {lyrics.length === 0 && (
-          <div className="text-center">
-            <div 
-              className="font-bold text-muted-foreground opacity-50 animate-pulse-gentle"
-              style={{
-                fontSize: `${3 * (settings.fontSize / 100)}rem`,
-                fontFamily: settings.fontFamily
-              }}
-            >
-              Upload your song to see lyrics
-            </div>
+          <div
+            className="text-muted-foreground opacity-50 animate-pulse-gentle"
+            style={{
+              fontSize: `${3 * (settings.fontSize / 100)}rem`,
+              fontFamily: settings.fontFamily,
+            }}
+          >
+            Upload your song to see lyrics
           </div>
         )}
       </div>

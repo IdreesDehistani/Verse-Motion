@@ -3,25 +3,34 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light' | null>(null);
 
+  // Load theme once (no flash)
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' || 'dark';
-    setTheme(savedTheme);
-    updateTheme(savedTheme);
+    const saved =
+      (typeof window !== 'undefined' &&
+        (localStorage.getItem('theme') as 'dark' | 'light')) ||
+      'dark';
+
+    setTheme(saved);
+    document.documentElement.classList.remove('dark', 'light');
+    document.documentElement.classList.add(saved);
   }, []);
 
-  const updateTheme = (newTheme: 'dark' | 'light') => {
+  const toggleTheme = () => {
+    if (!theme) return;
+
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+
     document.documentElement.classList.remove('dark', 'light');
     document.documentElement.classList.add(newTheme);
+
     localStorage.setItem('theme', newTheme);
   };
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    updateTheme(newTheme);
-  };
+  // Hide button until initial theme is loaded (prevents flicker)
+  if (theme === null) return null;
 
   return (
     <Button

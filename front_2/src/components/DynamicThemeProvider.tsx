@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
+import { useEffect, useState, createContext, useContext, ReactNode, useRef } from 'react';
 
 interface DynamicThemeContextType {
   dominantColors: string[];
@@ -16,189 +16,182 @@ const DynamicThemeContext = createContext<DynamicThemeContextType>({
 
 export const useDynamicTheme = () => useContext(DynamicThemeContext);
 
-interface DynamicThemeProviderProps {
+// Fallback colors if extraction fails
+const FALLBACK_COLORS = [
+  "220 80% 50%",
+  "280 70% 60%",
+  "180 60% 45%",
+];
+
+interface ProviderProps {
   children: ReactNode;
 }
 
-// Color extraction utility using Canvas API
+// --- COLOR EXTRACTION ---------------------------------------------------
+
 const extractDominantColors = (imageUrl: string): Promise<string[]> => {
   return new Promise((resolve) => {
     const img = new Image();
-    // Try without crossOrigin first for local/uploaded files
-    
+    img.crossOrigin = "anonymous"; // Prevent canvas CORS errors
+
     img.onload = () => {
       try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
         if (!ctx) {
-          console.warn('Could not get canvas context');
-          resolve([]);
+          resolve(FALLBACK_COLORS);
           return;
         }
 
-        // Scale down for performance
-        const size = 100;
+        const size = 80;
         canvas.width = size;
         canvas.height = size;
-        
+
         ctx.drawImage(img, 0, 0, size, size);
-        
-        const imageData = ctx.getImageData(0, 0, size, size);
-        const data = imageData.data;
-        
-        // Sample colors from the image
-        const colorMap = new Map<string, number>();
-        
-        for (let i = 0; i < data.length; i += 16) { // Sample every 4th pixel
+        const { data } = ctx.getImageData(0, 0, size, size);
+
+        const map = new Map<string, number>();
+
+        for (let i = 0; i < data.length; i += 20) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
           const a = data[i + 3];
-          
-          // Skip transparent and very dark/light pixels
-          if (a < 128 || (r + g + b) < 50 || (r + g + b) > 700) continue;
-          
-          // Quantize colors to reduce noise
+
+          if (a < 120) continue;
+          if (r + g + b < 60) continue;
+          if (r + g + b > 700) continue;
+
           const qR = Math.floor(r / 32) * 32;
           const qG = Math.floor(g / 32) * 32;
           const qB = Math.floor(b / 32) * 32;
-          
-          const color = `${qR},${qG},${qB}`;
-          colorMap.set(color, (colorMap.get(color) || 0) + 1);
+
+          const key = `${qR},${qG},${qB}`;
+          map.set(key, (map.get(key) || 0) + 1);
         }
-        
-        // Get most frequent colors
-        const sortedColors = Array.from(colorMap.entries())
+
+        const colors = Array.from(map.entries())
           .sort(([, a], [, b]) => b - a)
-          .slice(0, 5)
-          .map(([color]) => {
-            const [r, g, b] = color.split(',').map(Number);
-            // Convert to HSL for better theme integration
+          .slice(0, 3)
+          .map(([c]) => {
+            const [r, g, b] = c.split(",").map(Number);
             const hsl = rgbToHsl(r, g, b);
             return `${Math.round(hsl.h)} ${Math.round(hsl.s)}% ${Math.round(hsl.l)}%`;
           });
-        
-        console.log('Successfully extracted colors:', sortedColors);
-        resolve(sortedColors);
-      } catch (error) {
-        console.warn('Could not extract colors from image:', error);
-        resolve([]);
+
+        resolve(colors.length > 0 ? colors : FALLBACK_COLORS);
+      } catch {
+        resolve(FALLBACK_COLORS);
       }
     };
-    
-    img.onerror = (e) => {
-      console.warn('Image failed to load:', e);
-      resolve([]);
-    };
-    
-    // Set src after setting up event handlers
+
+    img.onerror = () => resolve(FALLBACK_COLORS);
     img.src = imageUrl;
   });
 };
 
-// RGB to HSL conversion
-const rgbToHsl = (r: number, g: number, b: number) => {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0, s = 0, l = (max + min) / 2;
-  
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    
+// RGB → HSL
+function rgbToHsl(r: number, g: number, b: number) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1));
     switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case r: h = ((g - b) / d) % 6; break;
       case g: h = (b - r) / d + 2; break;
       case b: h = (r - g) / d + 4; break;
     }
-    h /= 6;
+    h *= 60;
+    if (h < 0) h += 360;
   }
-  
-  return { h: h * 360, s: s * 100, l: l * 100 };
-};
+  return { h, s: s * 100, l: l * 100 };
+}
 
-export function DynamicThemeProvider({ children }: DynamicThemeProviderProps) {
+// --- PROVIDER -----------------------------------------------------------
+
+export function DynamicThemeProvider({ children }: ProviderProps) {
   const [dominantColors, setDominantColors] = useState<string[]>([]);
-  const [isDynamic, setIsDynamic] = useState(true); // Enable by default
   const [albumCover, setAlbumCover] = useState<string | null>(null);
+  const [isDynamic, setIsDynamic] = useState(false);
 
-  // Extract colors when album cover changes
-  useEffect(() => {
-    if (albumCover && isDynamic) {
-      console.log('Extracting colors from:', albumCover);
-      extractDominantColors(albumCover).then(colors => {
-        console.log('Extracted colors:', colors);
-        setDominantColors(colors);
-        applyDynamicTheme(colors);
-      }).catch(error => {
-        console.warn('Failed to extract colors:', error);
-      });
-    } else if (!isDynamic) {
-      // Reset to original theme
-      resetTheme();
-    }
-  }, [albumCover, isDynamic]);
+  // Save original Tailwind theme
+  const originalTheme = useRef<Record<string, string>>({});
 
-  const applyDynamicTheme = (colors: string[]) => {
-    if (colors.length === 0) {
-      console.warn('No colors to apply');
-      return;
-    }
-    
-    console.log('Applying dynamic theme with colors:', colors);
+  const saveOriginalTheme = () => {
     const root = document.documentElement;
-    
-    // Use extracted colors for theme variables
-    if (colors[0]) {
-      root.style.setProperty('--primary', colors[0]);
-    }
-    if (colors[1]) {
-      root.style.setProperty('--accent', colors[1]);
-    }
-    if (colors[2]) {
-      root.style.setProperty('--secondary', colors[2]);
-    }
-    
-    // Create gradient backgrounds
-    if (colors.length >= 2) {
-      const gradient = `linear-gradient(135deg, hsl(${colors[0]}) 0%, hsl(${colors[1]}) 50%, hsl(${colors[2] || colors[0]}) 100%)`;
-      root.style.setProperty('--gradient-primary', gradient);
-      root.style.setProperty('--gradient-background', gradient);
-    }
-    
-    // Add dynamic glow effects
-    root.style.setProperty('--shadow-glow', `0 10px 30px -10px hsl(${colors[0]} / 0.4)`);
+    originalTheme.current = {
+      primary: getComputedStyle(root).getPropertyValue("--primary"),
+      accent: getComputedStyle(root).getPropertyValue("--accent"),
+      secondary: getComputedStyle(root).getPropertyValue("--secondary"),
+      gradient: getComputedStyle(root).getPropertyValue("--gradient-primary")
+    };
+  };
+
+  useEffect(() => {
+    if (!albumCover) return;
+
+    extractDominantColors(albumCover).then((colors) => {
+      setDominantColors(colors);
+
+      if (isDynamic) {
+        saveOriginalTheme();
+        applyTheme(colors);
+      }
+    });
+  }, [albumCover]);
+
+  const applyTheme = (colors: string[]) => {
+    const root = document.documentElement;
+
+    const [c1, c2, c3] = [
+      colors[0] || FALLBACK_COLORS[0],
+      colors[1] || FALLBACK_COLORS[1],
+      colors[2] || colors[0] || FALLBACK_COLORS[2],
+    ];
+
+    root.style.setProperty("--primary", c1);
+    root.style.setProperty("--accent", c2);
+    root.style.setProperty("--secondary", c3);
+
+    const gradient = `linear-gradient(135deg, hsl(${c1}) 0%, hsl(${c2}) 50%, hsl(${c3}) 100%)`;
+    root.style.setProperty("--gradient-primary", gradient);
+    root.style.setProperty("--gradient-background", gradient);
+
+    root.style.setProperty("--shadow-glow", `0 10px 30px -10px hsl(${c1} / 0.4)`);
   };
 
   const resetTheme = () => {
     const root = document.documentElement;
-    
-    // Reset to original CSS custom properties
-    root.style.removeProperty('--primary');
-    root.style.removeProperty('--accent');
-    root.style.removeProperty('--secondary');
-    root.style.removeProperty('--gradient-primary');
-    root.style.removeProperty('--shadow-glow');
+    Object.entries(originalTheme.current).forEach(([key, value]) => {
+      root.style.setProperty(`--${key}`, value);
+    });
   };
 
   const toggleDynamic = () => {
-    setIsDynamic(!isDynamic);
-  };
+    setIsDynamic((prev) => {
+      const next = !prev;
 
-  const contextValue: DynamicThemeContextType = {
-    dominantColors,
-    isDynamic,
-    setAlbumCover: (url) => setAlbumCover(url),
-    toggleDynamic
+      if (next && albumCover) applyTheme(dominantColors);
+      else resetTheme();
+
+      return next;
+    });
   };
 
   return (
-    <DynamicThemeContext.Provider value={contextValue}>
+    <DynamicThemeContext.Provider
+      value={{
+        dominantColors,
+        isDynamic,
+        setAlbumCover,
+        toggleDynamic
+      }}
+    >
       {children}
     </DynamicThemeContext.Provider>
   );

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LanguageSelector } from './LanguageSelector';
 import { TextPressure } from './TextPressure';
-// NEW: API client + mapper
+
+// API functions – MUST EXIST in /src/lib/api.ts
 import { uploadAudioToBackend, mapToLyricDisplay } from '@/lib/api';
 
 interface SongUploaderProps {
@@ -16,32 +17,73 @@ export function SongUploader({ onSongLoad }: SongUploaderProps) {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // CHANGED: async + call backend, remove demo lyrics
+  // ================================================================
+  // HANDLE AUDIO UPLOAD
+  // ================================================================
   const handleAudioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // -----------------------------------------
+    // VALIDATE AUDIO FORMAT
+    // -----------------------------------------
+    const allowed = [
+      'audio/mpeg',
+      'audio/wav',
+      'audio/x-wav',
+      'audio/mp4',
+      'audio/m4a',
+      'audio/ogg'
+    ];
+
+    if (!allowed.includes(file.type)) {
+      alert('Unsupported audio format.');
+      return;
+    }
+
     setIsLoading(true);
+
+    // URL used for playback inside AudioPlayer
     const audioUrl = URL.createObjectURL(file);
 
-    // Extract basic song info from filename
-    const fileName = file.name.replace(/\.[^/.]+$/, "");
+    // -----------------------------------------
+    // BASIC SONG INFO PARSED FROM FILE NAME
+    // e.g. "Artist - Title.mp3"
+    // -----------------------------------------
+    const fileName = file.name.replace(/\.[^/.]+$/, '');
     const parts = fileName.split(' - ');
+
     const songInfo = {
       title: parts[1] || fileName,
       artist: parts[0] || 'Unknown Artist',
-      album: 'Unknown Album'
+      album: 'Unknown Album',
     };
 
     try {
-      // Send to FastAPI and map payload to LyricDisplay format
+      // -----------------------------------------
+      // BACKEND CALL (FastAPI Whisper)
+      // -----------------------------------------
       const resp = await uploadAudioToBackend(file);
+
+      // Backend must return: { lines: [...], duration: x }
+      if (!resp || !resp.lines) {
+        alert('Backend returned unexpected data.');
+        return;
+      }
+
+      // -----------------------------------------
+      // MAP BACKEND FORMAT → LyricDisplay format
+      // -----------------------------------------
       const mapped = mapToLyricDisplay(resp.lines);
 
       onSongLoad(
         audioUrl,
         mapped,
-        { ...songInfo, language: selectedLanguage, duration: resp.duration }
+        { 
+          ...songInfo, 
+          language: selectedLanguage, 
+          duration: resp.duration 
+        }
       );
     } catch (e) {
       console.error(e);
@@ -51,29 +93,40 @@ export function SongUploader({ onSongLoad }: SongUploaderProps) {
     }
   };
 
+  // ===================================================================
+  // COMPONENT UI
+  // ===================================================================
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
       <div className="max-w-md w-full">
+
+        {/* LANGUAGE SELECTOR */}
         <LanguageSelector 
           selectedLanguage={selectedLanguage}
           onLanguageSelect={setSelectedLanguage}
         />
-        
-        <Card className="p-8 w-full bg-card/80 backdrop-blur-xl border-border/50 shadow-card animate-fade-in">
-        <div className="text-center space-y-6">
-          <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto shadow-glow">
-            <Music className="h-10 w-10 text-white" />
-          </div>
-          
-          <div>
+
+        {/* CARD WRAPPER – disabled during loading */}
+        <Card
+          className={`p-8 w-full bg-card/80 backdrop-blur-xl border-border/50 shadow-card animate-fade-in 
+            ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+        >
+          <div className="text-center space-y-6">
+            
+            {/* ICON */}
+            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto shadow-glow">
+              <Music className="h-10 w-10 text-white" />
+            </div>
+
+            {/* TITLE (TextPressure is OK for short titles) */}
             <div className="text-2xl font-bold mb-2">
               {"Welcome to VerseMotion".split('').map((char, index) => (
                 <TextPressure
                   key={index}
                   text={char === ' ' ? '\u00A0' : char}
-                  flex={true}
-                  weight={true}
-                  width={true}
+                  flex
+                  weight
+                  width
                   italic={false}
                   alpha={false}
                   stroke={false}
@@ -81,34 +134,18 @@ export function SongUploader({ onSongLoad }: SongUploaderProps) {
                   minFontSize={20}
                   maxFontSize={28}
                   className="inline-block"
-                  neighborEffect={true}
+                  neighborEffect
                   neighborStrength={0.6}
                 />
               ))}
             </div>
-            <div className="text-muted-foreground">
-              {"Upload your audio file and watch lyrics automatically sync with your music".split('').map((char, index) => (
-                <TextPressure
-                  key={index}
-                  text={char === ' ' ? '\u00A0' : char}
-                  flex={true}
-                  weight={false}
-                  width={true}
-                  italic={false}
-                  alpha={true}
-                  stroke={false}
-                  textColor="hsl(var(--muted-foreground))"
-                  minFontSize={14}
-                  maxFontSize={18}
-                  className="inline-block"
-                  neighborEffect={true}
-                  neighborStrength={0.5}
-                />
-              ))}
-            </div>
-          </div>
 
-          <div className="space-y-4">
+            {/* DESCRIPTION (smooth, no TextPressure → much cleaner & readable) */}
+            <p className="text-muted-foreground text-base md:text-lg tracking-wide antialiased">
+              Upload your audio file and watch lyrics automatically sync with your music.
+            </p>
+
+            {/* BUTTON */}
             <Button
               onClick={() => audioInputRef.current?.click()}
               disabled={isLoading}
@@ -117,14 +154,16 @@ export function SongUploader({ onSongLoad }: SongUploaderProps) {
               <Upload className="h-4 w-4 mr-2" />
               {isLoading ? 'Loading...' : 'Upload Audio & Auto-Play Lyrics'}
             </Button>
-          </div>
 
-          <div className="text-xs text-muted-foreground">
-            Supported formats: MP3, WAV, M4A, OGG
+            {/* SUPPORTED FORMATS */}
+            <div className="text-xs text-muted-foreground">
+              Supported formats: MP3, WAV, M4A, OGG
+            </div>
+
           </div>
-        </div>
         </Card>
 
+        {/* HIDDEN FILE INPUT */}
         <input
           ref={audioInputRef}
           type="file"
@@ -132,6 +171,7 @@ export function SongUploader({ onSongLoad }: SongUploaderProps) {
           onChange={handleAudioUpload}
           className="hidden"
         />
+
       </div>
     </div>
   );

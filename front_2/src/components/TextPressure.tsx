@@ -141,13 +141,14 @@ export function TextPressure({
     fontVariationSettings: getFontVariationSettings(),
     opacity: alpha ? 0.3 + (totalPressure * 0.7) : 1,
     WebkitTextStroke: stroke ? `${totalPressure * 2}px ${strokeColor}` : undefined,
-    transition: 'all 0.03s ease-out',
+    transition: 'all 0.15s ease-out',
     cursor: 'default',
     display: 'inline-block',
     userSelect: 'none',
     transformOrigin: 'center',
-    transform: `scale(${1 + totalPressure * 0.15}) translateY(${-totalPressure * 2}px)`,
-    filter: `blur(${Math.max(0, (1 - totalPressure) * 0.5)}px)`,
+    transform: `scale(${1 + totalPressure * 0.08}) translateY(${-totalPressure * 1}px)`,
+
+    filter:undefined,
   };
 
   return (
